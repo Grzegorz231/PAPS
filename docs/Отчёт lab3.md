@@ -14,6 +14,12 @@
 ## Диаграмма компонентов
 
 Диаграмма компонентов содержит те элементы, для которых далее демонстрируется код.
+Используемые компоненты:
+* Контроллер API - принимает HTTP-запросы, выполняет базовую валидацию и маршрутизацию;
+* Сервис обработки запроса - инкапсулирует логику обработки пользовательского запроса;
+* Клиент сервиса ИИ - отвечает за взаимодействие с внешним ИИ-сервисом;
+* Формирователь ответа - преобразует внутреннюю модель данных в объект передачи данных;
+* Журналирование и аудит - логирует операции.
 
 <img width="736" height="1169" alt="image" src="https://github.com/user-attachments/assets/65a73a8e-f58c-4d5f-8fb2-8517f3e4d38f" />
 
@@ -24,16 +30,48 @@
 ## Модель БД
 
 ## Применение основных принципов разработки
-
+### KISS
 ```
-@app.post("/query", response_model=QueryOut)
-def query(payload: QueryIn) -> QueryOut:
-    audit.log_request(payload.text)
-    try:
-        return service.enrich(payload.text)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=502, detail=str(e))
-```
+class RequestService:
+    def __init__(self, ai_client):
+        self._ai_client = ai_client
 
+    def enrich_request(self, text: str) -> dict:
+        if not text or not text.strip():
+            raise ValueError("Пустой запрос")
+        return self._ai_client.enrich(text)
+```
+Метод выполняет ровно одну задачу - проверяет корректность входных данных и передаёт запрос в сервис ИИ.
+
+### DRY
+```
+class RequestValidator:
+    @staticmethod
+    def validate(text: str) -> None:
+        if not text or not text.strip():
+            raise ValueError("Запрос не может быть пустым")
+class ApiController:
+    def __init__(self, service, validator):
+        self.service = service
+        self.validator = validator
+
+    def handle_request(self, text: str) -> dict:
+        self.validator.validate(text)
+        return self.service.enrich_request(text)
+```
+Логика валидации вынесена в отдельный класс и не дублируется.
+### YAGNI
+```
+class AiClient(ABC):
+    @abstractmethod
+    def enrich(self, text: str) -> dict:
+        pass
+
+class SimpleAiClient(AiClient):
+    def enrich(self, text: str) -> dict:
+        return {
+            "original": text,
+            "enriched": f"Уточнённый запрос: {text}"
+        }
+```
+Интерфейс AiClient содержит только один метод, действительно необходимый для текущего варианта использования. Больше ничего не добавляется, пока не понадобится.
