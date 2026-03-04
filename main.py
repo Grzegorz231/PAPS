@@ -1,8 +1,23 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+import os
+import psycopg2
 from typing import List, Optional
 
 app = FastAPI(title="AI-Assistant Ontology API")
+
+@app.get("/v1/db-check")
+def check_db():
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv("DB_HOST", "localhost"),
+            database=os.getenv("DB_NAME", "postgres"),
+            user=os.getenv("DB_USER", "postgres"),
+            password=os.getenv("DB_PASS", "postgres")
+        )
+        return {"status": "connected", "database": "PostgreSQL"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 class UserIssue(BaseModel):
     raw_text: str

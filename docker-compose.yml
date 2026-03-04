@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # 1. Хранилище (БД)
+  ontology-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user_vladimir
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: ontology_db
+    ports:
+      - "5432:5432"
+
+  # 2. Сервер приложений
+  app-server:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: ontology-db
+      DB_NAME: ontology_db
+      DB_USER: user_vladimir
+      DB_PASS: password123
+    depends_on:
+      - ontology-db
+
+  # 3. Веб-клиент (Интеграционный тест)
+  web-client-test:
+    image: curlimages/curl
+    command: >
+      sh -c "sleep 7 && 
+      echo '' && 
+      echo ' ТЕСТ 1: СВЯЗЬ С БД ' &&
+      echo '' &&
+      curl -s http://app-server:8000/v1/db-check && 
+      echo '' &&
+      echo ' ТЕСТ 2: АНАЛИЗ ЗАПРОСА ' && 
+      echo '' &&
+      curl -s -X POST -H 'Content-Type: application/json' -d '{\"raw_text\": \"Тест Docker\"}' http://app-server:8000/v1/enrichment/analyze &&
+      echo ' ТЕСТЫ ЗАВЕРШЕНЫ ' &&
+      echo ''"
+    depends_on:
+      - app-server
