@@ -1,0 +1,7 @@
+<h1>AI-Assistant Ontology</h1>
+<div id="status">Загрузка...</div>
+<script>
+    fetch('/api/v1/db-check')
+        .then(r => r.json())
+        .then(data => document.getElementById('status').innerText = JSON.stringify(data));
+</script>

@@ -1,17 +1,12 @@
 version: '3.8'
-
 services:
-  # 1. Хранилище (БД)
   ontology-db:
     image: postgres:15
     environment:
       POSTGRES_USER: user_vladimir
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: ontology_db
-    ports:
-      - "5432:5432"
 
-  # 2. Сервер приложений
   app-server:
     build: .
     ports:
@@ -21,23 +16,23 @@ services:
       DB_NAME: ontology_db
       DB_USER: user_vladimir
       DB_PASS: password123
-    depends_on:
-      - ontology-db
 
-  # 3. Веб-клиент (Интеграционный тест)
-  web-client-test:
-    image: curlimages/curl
-    command: >
-      sh -c "sleep 7 && 
-      echo '' && 
-      echo ' ТЕСТ 1: СВЯЗЬ С БД ' &&
-      echo '' &&
-      curl -s http://app-server:8000/v1/db-check && 
-      echo '' &&
-      echo ' ТЕСТ 2: АНАЛИЗ ЗАПРОСА ' && 
-      echo '' &&
-      curl -s -X POST -H 'Content-Type: application/json' -d '{\"raw_text\": \"Тест Docker\"}' http://app-server:8000/v1/enrichment/analyze &&
-      echo ' ТЕСТЫ ЗАВЕРШЕНЫ ' &&
-      echo ''"
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
     depends_on:
       - app-server
+
+  integration-tests:
+    image: curlimages/curl
+    depends_on:
+      - app-server
+    command: >
+      sh -c "sleep 10 && 
+      echo 'Проверка связи с БД' &&
+      curl -f http://app-server:8000/v1/db-check &&
+      echo 'Проверка анализа текста' &&
+      curl -f -X POST -H 'Content-Type: application/json' -d '{\"raw_text\":\"Сбой авторизации\"}' http://app-server:8000/v1/enrichment/analyze"

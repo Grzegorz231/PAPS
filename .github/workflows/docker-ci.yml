@@ -1,0 +1,21 @@
+name: Docker CI
+
+on:
+  push:
+    branches: [ LabWork5 ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build and Run
+        run: docker compose up -d --build
+      - name: Check Integration Tests
+        run: |
+          docker compose logs -f integration-tests
+          exit_code=$(docker inspect integration-tests --format='{{.State.ExitCode}}')
+          if [ $exit_code -ne 0 ]; then
+            echo "Integration tests failed"
+            exit 1
+          fi
