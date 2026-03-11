@@ -19,16 +19,55 @@
 ## 2. Спецификация API
 
 ### Методы GET
-* `GET /v1/ontology/terms` — Список всех понятий из Protege.
-* `GET /v1/ontology/terms/{id}` — Детальная информация об одном понятии.
+* `GET /v1/ontology/terms`  
+Получение списка всех понятий, загруженных из Protege.  
+Структура полученного ответа `200 OK`:
+`{"source": "string", "terms": []}`
+* `GET /v1/ontology/terms/{id}`  
+Параметр: `{term_id}`  
+Получение детальной информации о конкретном понятии по его идентификатору.  
+Структура полученного ответа `200 OK`: `{"id": "int", "term": "string", "class": "string"}`  
+Структура полученного ответ `404 Not Found`: `{"detail": "Термин не найден в базе знаний"}`
 
 ### Методы POST
-* `POST /v1/enrichment/analyze` — Основная логика: отправка жалобы на анализ ИИ.
-* `POST /v1/tickets` — Создание финального технического отчета.
+* `POST /v1/enrichment/analyze`  
+Передача текста жалобы для первичной обработки и классификации с помощью ИИ.  
+Тело запроса: `{"raw_text": "string"}`  
+Тело ответа `200 OK`: `{"issue_id": "int","detected_concepts": "string","status": "string"}`
+* `POST /v1/tickets`  
+Генерация финального технического отчёта на основе уточнённых данных.
+Тело запроса: `{"raw_text": "string"}`  
+Тело ответа `201 Created`: `{"ticket_id": "int","message": "string"}`
 
 ### Методы PUT и DELETE
-* `PUT /v1/enrichment/refine/{id}` — Добавление уточнений к запросу.
-* `DELETE /v1/enrichment/cancel/{id}` — Удаление черновика запроса.
+* `PUT /v1/enrichment/refine/{id}`  
+Добавление уточнений к запросу.
+Параметр: `{issue_id}`  
+Тело запроса: 
+```
+{"additional_info": "string","confirmed": "bool" }
+```
+Тело ответа `200 OK`:  
+```
+{  
+  "message": "string",  
+  "current_report": {  
+    "raw": "string",  
+    "concepts": [],  
+    "extra": "string"  
+  }  
+}  
+```
+* `DELETE /v1/enrichment/cancel/{id}`  
+Удаление черновика запроса.  
+Параметр: `{issue_id}`
+Тело ответа `200 OK`:
+```
+{
+  "status": "string",
+  "message": "string"
+}
+```
 
 ---
 
@@ -37,33 +76,29 @@
 ### Тест 1: Получение терминов (GET)
 Запрос: `http://127.0.0.1:8000/v1/ontology/terms`  
 Результат: 200 OK. Пришел список из 3-х терминов.  
-![GET all.jpg](..%2Fimg%2FGET%20all.jpg)
+![GET.jpg](..%2Fimg%2FGET.jpg)
 
 ### Тест 2: Получение термина по ID (GET)
 Запрос: `http://127.0.0.1:8000/v1/ontology/terms/`  
 Результат: 200 OK. Пришел запрашиваемый термин.  
-![GET 1.jpg](..%2Fimg%2FGET%201.jpg)
-![GET 2.jpg](..%2Fimg%2FGET%202.jpg)
+![GET BY ID.jpg](..%2Fimg%2FGET%20BY%20ID.jpg)
 
 ### Тест 3: Анализ жалобы (POST)
 Запрос: `{"raw_text": "Сломался роутер"}`  
 Результат: 200 OK. Система определила концепты.
-![POST analyze 1.jpg](..%2Fimg%2FPOST%20analyze%201.jpg)
-![POST analyze 2.jpg](..%2Fimg%2FPOST%20analyze%202.jpg)
+Результат при отсутствии запроса: 422 Unprocessable Content.
+![POST analyze.jpg](..%2Fimg%2FPOST%20analyze.jpg)
 
 ### Тест 4: Создание финального тикета (POST)
 Запрос: `{"raw_text": "Поломка кабеля"}`  
 Результат: 201 Created. Создан финальный тикет.
-![POST 2.1.jpg](..%2Fimg%2FPOST%202.1.jpg)
-![POST 2.2.jpg](..%2Fimg%2FPOST%202.2.jpg)
+![POST Final.jpg](..%2Fimg%2FPOST%20Final.jpg)
 
 ### Тест 5: Обновление данных (PUT)
 Запрос: `{"additional_info": "Горит красная лампочка", "confirmed": true}`  
 Результат: 200 OK. Информация добавлена к объекту.
-![PUT 1.jpg](..%2Fimg%2FPUT%201.jpg)
-![PUT 2.jpg](..%2Fimg%2FPUT%202.jpg)
+![PUT.jpg](..%2Fimg%2FPUT.jpg)
 
 ### Тест 6: Удаление запроса (DELETE)
-Результат: 200 OK. Сообщение "Запрос {id} удален". Повторный GET по этому ID выдает 404.
-![DELETE 1.jpg](..%2Fimg%2FDELETE%201.jpg)
-![DELETE 2.jpg](..%2Fimg%2FDELETE%202.jpg)
+Результат: 200 OK.
+![DELETE.jpg](..%2Fimg%2FDELETE.jpg)
