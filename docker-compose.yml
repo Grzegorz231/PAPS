@@ -28,6 +28,7 @@ services:
 
   integration-tests:
     image: curlimages/curl
+    container_name: integration-tests
     depends_on:
       - app-server
     command: >
