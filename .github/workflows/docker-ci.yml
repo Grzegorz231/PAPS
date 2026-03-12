@@ -9,13 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Build and Run
-        run: docker compose up -d --build
-      - name: Check Integration Tests
-        run: |
-          docker compose logs -f integration-tests
-          result=$(docker compose ps -q integration-tests | xargs docker inspect -f '{{.State.ExitCode}}')
-          if [ "$result" != "0" ]; then
-            echo "Integration tests failed code $result"
-            exit 1
-          fi
+      - name: Build and Run Tests
+        run: docker compose up --build --exit-code-from integration-tests
+      - name: Check Logs
+        if: always()
+        run: docker compose logs integration-tests
